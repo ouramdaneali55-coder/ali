@@ -3144,17 +3144,18 @@ def session_html(row, current=False):
 
     now_badge = '<span class="now">EN COURS</span>' if current else ""
 
-    return f"""
-    <div class="{css}">
-      <div class="slot-top">
-        <span class="badge badge-{kind.lower()}">{badge}</span>
-        {now_badge}
-      </div>
-      <div class="subject">{html.escape(str(row["code"]))}</div>
-      <div class="detail">📍 {html.escape(str(row["room"]))}</div>
-      <div class="detail">👤 {html.escape(str(row["teacher"]))}</div>
-    </div>
-    """
+    # Return as a single line without indentation to prevent Markdown from treating it as a code block
+    return (
+        f'<div class="{css}">'
+        f'<div class="slot-top">'
+        f'<span class="badge badge-{kind.lower()}">{badge}</span>'
+        f'{now_badge}'
+        f'</div>'
+        f'<div class="subject">{html.escape(str(row["code"]))}</div>'
+        f'<div class="detail">📍 {html.escape(str(row["room"]))}</div>'
+        f'<div class="detail">👤 {html.escape(str(row["teacher"]))}</div>'
+        f'</div>'
+    )
 
 
 df = load_dataframe()
