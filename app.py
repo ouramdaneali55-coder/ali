@@ -32,6 +32,27 @@ GROUPS = [f"G{i:02d}" for i in range(1, 17)]
 TYPE_LABEL = {"LECT": "Cours", "REC": "TD", "LAB": "TP"}
 TYPE_ICON = {"LECT": "📘", "REC": "✏️", "LAB": "🧪"}
 
+# Code -> nom complet du module
+MODULE_NAMES = {
+    "EE171": "Maths I",
+    "EE121": "Algorithmic",
+    "EE173": "Physics I",
+    "EE175": "Chemistry I",
+    "EE123": "Free and Open-Source Software",
+    "EE173L": "Physics I Lab",
+    "EL101": "English I",
+    "EL103": "Writing Methods, Ethics and Deontology",
+}
+
+
+def module_name(code):
+    return MODULE_NAMES.get(str(code), "")
+
+
+def module_label(code):
+    name = module_name(code)
+    return f"{code} — {name}" if name else str(code)
+
 # Source: official IGEE PDF "L1-S1-2026-2027(1).pdf"
 # Last modification shown in the PDF: 17/09/2026 14:57:37
 SCHEDULE = [
@@ -130,6 +151,7 @@ def session_html(row, current=False):
         f"{now_badge}"
         f"</div>"
         f'<div class="subject">{html.escape(str(row["code"]))}</div>'
+        f'<div class="module-name">{html.escape(module_name(row["code"]))}</div>'
         f'<div class="detail">📍 {html.escape(str(row["room"]))}</div>'
         f'<div class="detail">👤 {html.escape(str(row["teacher"]))}</div>'
         f"</div>"
@@ -332,6 +354,7 @@ h3 { font-weight: 800 !important; letter-spacing: -.01em; margin-top: 1.6rem !im
     letter-spacing: .02em;
 }
 .subject { font-size: 1rem; font-weight: 800; margin-top: .5rem; letter-spacing: -.01em; }
+.module-name { font-size: .72rem; font-weight: 600; opacity: .68; margin-top: .1rem; line-height: 1.25; }
 .detail { font-size: .74rem; margin-top: .22rem; opacity: .72; line-height: 1.25; }
 
 /* --- MOBILE --- */
@@ -400,7 +423,8 @@ h3 { font-weight: 800 !important; letter-spacing: -.01em; margin-top: 1.6rem !im
     font-size: .66rem;
     margin-left: auto;
 }
-.mobile-subject { font-size: 1.08rem; font-weight: 800; margin-bottom: .45rem; letter-spacing: -.01em; }
+.mobile-subject { font-size: 1.08rem; font-weight: 800; margin-bottom: .1rem; letter-spacing: -.01em; }
+.mobile-module-name { font-size: .8rem; font-weight: 600; opacity: .68; margin-bottom: .5rem; }
 .mobile-detail { font-size: .84rem; opacity: .8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .mobile-detail span { display: flex; align-items: center; gap: 4px; }
 
@@ -454,7 +478,11 @@ with st.sidebar:
     room = st.selectbox("Salle", ["Toutes"] + rooms)
 
     codes = sorted(group_df["code"].unique().tolist()) if not group_df.empty else []
-    code = st.selectbox("Matière / code", ["Toutes"] + codes)
+    code = st.selectbox(
+        "Matière / code",
+        ["Toutes"] + codes,
+        format_func=lambda x: "Toutes" if x == "Toutes" else module_label(x),
+    )
 
     st.divider()
     if st.button("🔄 Actualiser", use_container_width=True):
@@ -549,6 +577,7 @@ if not filtered.empty:
                 f"{now_badge}"
                 f"</div>"
                 f'<div class="mobile-subject">{html.escape(str(row["code"]))}</div>'
+                f'<div class="mobile-module-name">{html.escape(module_name(row["code"]))}</div>'
                 f'<div class="mobile-detail">'
                 f'<span>📍 {html.escape(str(row["room"]))}</span>'
                 f'<span>👤 {html.escape(str(row["teacher"]))}</span>'
@@ -614,20 +643,23 @@ if not filtered.empty:
     display_df["Jour"] = display_df["day"].map(DAY_FR)
     display_df["Horaire"] = display_df["time"]
     display_df["Code"] = display_df["code"]
+    display_df["Module"] = display_df["code"].map(module_name)
     display_df["Type"] = display_df["type"].map(TYPE_LABEL)
     display_df["Salle"] = display_df["room"]
     display_df["Enseignant"] = display_df["teacher"]
 
     st.dataframe(
         display_df[
-            ["Jour", "Horaire", "Code", "Type", "Salle", "Enseignant"]
+            ["Jour", "Horaire", "Code", "Module", "Type", "Salle", "Enseignant"]
         ],
         use_container_width=True,
         hide_index=True,
     )
 
-    csv = display_df[
-        ["group", "day", "time", "code", "type", "room", "teacher"]
+    csv_df = display_df.copy()
+    csv_df["module_name"] = csv_df["code"].map(module_name)
+    csv = csv_df[
+        ["group", "day", "time", "code", "module_name", "type", "room", "teacher"]
     ].to_csv(index=False).encode("utf-8-sig")
 
     st.download_button(
